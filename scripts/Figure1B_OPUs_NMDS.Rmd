@@ -1,0 +1,233 @@
+---
+title: "Figure1B"
+output: pdf_document
+date: "2025-08-06"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### **Intro**
+Non-Metric Multidimensional Scaling (NMDS) performed on the Bray-Curtis compositional dissimilarity matrices of Operational Protein Units (OPUs), to reproduce the analyses and the Figure 1A from the original publication [Seasonal dynamics of the coastal microbiome and its association with environmental factors](https://doi.org/10.1038/s41597-023-02266-0).
+
+
+
+### **1. Set the environment**
+
+```{r packages}
+library(tidyverse)
+library(vegan)
+library(ggpubr)
+library(corrgram)
+library(lubridate)  
+library(grid)       
+```
+
+### **2. Load data**
+
+```{r load}
+ABUND <- readr::read_tsv("../data/opus_workable.tsv", show_col_types = FALSE)
+METADATA <- readr::read_tsv("../data/metadata_workable.tsv", show_col_types = FALSE)
+```
+
+### 3. Format abundance table
+Because the OPU abundance table is in long format (to speed up import), we need to convert it back to wide format.
+
+```{r to-matrix}
+ABUND <- ABUND %>%
+  tidyr::pivot_wider(names_from = opu_id, values_from = abundance) %>%
+  tibble::column_to_rownames("Date") %>%
+  as.matrix()
+```
+
+### **3. Run NMDS**
+NMDS is performed on Bray–Curtis dissimilarities computed from Hellinger-transformed OPU abundance profiles.
+
+```{r}
+ABUND_norm <- vegan::decostand(ABUND, method = "hellinger")
+set.seed(123)
+ABUND_norm_nmds <- vegan::metaMDS(ABUND_norm, k = 2, try = 50, trymax = 50, threshold = 0.9)
+```
+
+### **4. Merge tables to plot**
+
+```{r format}
+ABUND_norm_nmds_ext <- ABUND_norm_nmds$points %>%
+  as.data.frame() %>%
+  tibble::rownames_to_column("Date") %>%
+  dplyr::mutate(Date = as.Date(Date)) %>%
+  dplyr::left_join(METADATA, by = "Date")
+
+# Factor order for seasons
+ABUND_norm_nmds_ext$Season <- factor(ABUND_norm_nmds_ext$Season,
+                                        levels = c("Summer", "Autumn", "Winter", "Spring"))
+```
+
+### **5. Add centroid coordinates**
+The centroid coordinates for each season are calculated to draw segments connecting the centroids.
+
+```{r centroids}
+ctd_coords <- ABUND_norm_nmds_ext %>%
+  dplyr::mutate(Year = lubridate::year(Date)) %>%
+  dplyr::group_by(Season) %>%
+  dplyr::summarize(mean_nmds1 = mean(MDS1), mean_nmds2 = mean(MDS2), .groups = "drop") %>%
+  dplyr::arrange(Season)
+
+ctd_coords$segment_x    <- NA
+ctd_coords$segment_y    <- NA
+ctd_coords$segment_xend <- NA
+ctd_coords$segment_yend <- NA
+
+for (i in 1:(nrow(ctd_coords) - 1)) {
+  ctd_coords$segment_x[i]    <- ctd_coords$mean_nmds1[i]
+  ctd_coords$segment_y[i]    <- ctd_coords$mean_nmds2[i]
+  ctd_coords$segment_xend[i] <- ctd_coords$mean_nmds1[i + 1]
+  ctd_coords$segment_yend[i] <- ctd_coords$mean_nmds2[i + 1]
+}
+
+i_last <- nrow(ctd_coords)
+ctd_coords$segment_x[i_last]    <- ctd_coords$mean_nmds1[i_last]
+ctd_coords$segment_y[i_last]    <- ctd_coords$mean_nmds2[i_last]
+ctd_coords$segment_xend[i_last] <- ABUND_norm_nmds_ext %>%
+  dplyr::filter(Season == "Summer") %>% dplyr::summarize(mean_nmds1 = mean(MDS1)) %>% dplyr::pull(mean_nmds1)
+ctd_coords$segment_yend[i_last] <- ABUND_norm_nmds_ext %>%
+  dplyr::filter(Season == "Summer") %>% dplyr::summarize(mean_nmds2 = mean(MDS2)) %>% dplyr::pull(mean_nmds2)
+```
+
+### **7. Plot: MDS1 vs MDS2**
+
+```{r plot-settings}
+x_title <- "MDS1"; y_title <- "MDS2"
+x_max <- max(ABUND_norm_nmds_ext$MDS1) + max(ABUND_norm_nmds_ext$MDS1)/10
+x_min <- min(ABUND_norm_nmds_ext$MDS1) - abs(min(ABUND_norm_nmds_ext$MDS1)/10)
+y_max <- max(ABUND_norm_nmds_ext$MDS2) + max(ABUND_norm_nmds_ext$MDS2)/10
+y_min <- min(ABUND_norm_nmds_ext$MDS2) - abs(min(ABUND_norm_nmds_ext$MDS2)/10)
+
+text_size <- 13
+season_colors <- c("#c93f1b", "#98482b", "#154360", "#3c7810")
+nmds_plot_margin <- c(0.2, 1, 0.2, 0.2)
+
+nmds_plot_mds1_vs_mds2 <- ggplot(ABUND_norm_nmds_ext, aes(MDS1, MDS2, color = Season), alpha = 0.8) +
+  geom_point(alpha = 0.95, size = 3) +
+  scale_color_manual(values = season_colors) +
+  geom_vline(xintercept = 0, color = "gray40", linetype = "dotted") +
+  geom_hline(yintercept = 0, color = "gray40", linetype = "dotted") +
+  xlab(x_title) + ylab(y_title) +
+  theme_bw() +
+  theme(
+    axis.title = element_text(size = text_size + 4),
+    axis.text  = element_text(size = text_size),
+    legend.text  = element_text(size = text_size),
+    legend.title = element_text(size = text_size),
+    plot.margin  = grid::unit(nmds_plot_margin, "lines")
+  ) +
+  guides(shape = guide_legend(override.aes = list(size = 3)),
+         color = guide_legend(override.aes = list(shape = 19, size = 3))) +
+  xlim(c(x_min, x_max)) + ylim(c(y_min, y_max)) +
+  annotate("text", label = paste("Stress:", round(ABUND_norm_nmds$stress, 3)),
+           x = -1.4, y = 0.85, size = 3) +
+  geom_segment(data = ctd_coords,
+               aes(x = segment_x, y = segment_y, xend = segment_xend, yend = segment_yend),
+               arrow = arrow(length = grid::unit(0.1, "inches")),
+               color = "gray10", alpha = 0.7, linewidth = 1) +
+  geom_text(data = ctd_coords, aes(x = mean_nmds1, y = mean_nmds2),
+            label = c("Summer", "Autumn", "Winter", "Spring"),
+            vjust = c(-0.5, 0, 1.4, 0), hjust = c(0.5, 1.2, 0, -0.3),
+            fontface = "bold", size = 2, show.legend = FALSE) +
+  geom_text(aes(label = Date), vjust = 2, size = 1.5, check_overlap = TRUE, show.legend = FALSE)
+
+```
+
+### **8. Create box plot for MDS1**
+
+```{r boxplots, fig.width=7, fig.height=5}
+ABUND_norm_nmds_ext$Season_rev <- factor(ABUND_norm_nmds_ext$Season,
+                                            levels = c("Spring", "Winter", "Autumn", "Summer"))
+
+x_title_boxplot_mds1 <- x_title
+y_title_boxplot_mds1 <- "Season"
+boxplot_margin_pc1 <- c(0.2, 7.5, 0.2, 4.85)
+
+boxplot_mds1_vs_season <- ggplot(ABUND_norm_nmds_ext, aes(x = MDS1, y = Season_rev, fill = Season_rev)) +
+  geom_boxplot() +
+  scale_fill_manual(values = rev(season_colors), name = "Season") +
+  xlab(x_title_boxplot_mds1) + ylab(y_title_boxplot_mds1) +
+  theme_bw() +
+  theme(
+    axis.title.x = element_text(size = text_size + 4, margin = grid::unit(c(4,0,0,0), "mm")),
+    axis.title.y = element_text(size = text_size + 1, margin = grid::unit(c(0,2,0,0), "mm")),
+    axis.text.x  = element_text(size = text_size),
+    axis.text.y  = element_text(size = text_size - 3),
+    legend.text  = element_text(size = text_size),
+    legend.title = element_text(size = text_size),
+    plot.margin  = grid::unit(boxplot_margin_pc1, "lines")
+  ) +
+  xlim(c(x_min, x_max)) +
+  geom_segment(aes(x = 0.7, y = 1.5, xend = 0.7, yend = 3.5),
+               color = "gray10", alpha = 0.7, linewidth = 0.1) +
+  annotate("text", x = 0.75, y = 2.5, label = "***", size = 2, angle = 90)
+```
+### **9. Create boxplot for MDS2**
+
+```{r}
+x_title_boxplot_mds2 <- "Season"
+y_title_boxplot_mds2 <- y_title
+boxplot_margin_pc2 <- c(0.2, 0.2, 0.2, 0.2)
+
+boxplot_mds2_vs_season <- ggplot(ABUND_norm_nmds_ext, aes(x = Season_rev, y = MDS2, fill = Season_rev)) +
+  geom_boxplot() +
+  scale_fill_manual(values = rev(season_colors), name = "Season") +
+  xlab(x_title_boxplot_mds2) + ylab(y_title_boxplot_mds2) +
+  theme_bw() +
+  theme(
+    axis.title.x = element_text(size = text_size + 4, margin = grid::unit(c(4,0,0,0), "mm")),
+    axis.title.y = element_text(size = text_size + 4, margin = grid::unit(c(0,2,0,0), "mm")),
+    axis.text    = element_text(size = text_size),
+    legend.text  = element_text(size = text_size),
+    legend.title = element_text(size = text_size),
+    plot.margin  = grid::unit(boxplot_margin_pc2, "lines")
+  ) +
+  ylim(c(y_min, y_max))
+
+```
+
+### **10. Merge plots**
+```{r}
+
+nmds_plot_and_mds1_boxplot <- ggpubr::ggarrange(
+  boxplot_mds2_vs_season + ggpubr::rremove("legend") + ggpubr::rremove("x.title") + ggpubr::rremove("x.text"),
+  nmds_plot_mds1_vs_mds2 + ggpubr::rremove("x.title") + ggpubr::rremove("x.text") + ggpubr::rremove("y.text") + ggpubr::rremove("y.title"),
+  ncol = 2, nrow = 1, widths = c(0.25, 0.75)
+)
+
+nmds_plot_and_mds1_and_mds2_boxplot <- ggpubr::ggarrange(
+  nmds_plot_and_mds1_boxplot,
+  boxplot_mds1_vs_season + ggpubr::rremove("legend"),
+  nrow = 2, ncol = 1, heights = c(0.70, 0.3)
+)
+```
+
+### **11. Visualize plot**
+
+```{r}
+nmds_plot_and_mds1_and_mds2_boxplot
+```
+
+### **12. Perform ANOVA Welch test: MDS1**
+
+```{r welch-mds1}
+ABUND_norm_nmds_ext$Semester <- ifelse(ABUND_norm_nmds_ext$Season %in% c("Winter","Spring"),
+                                          "Winter-Spring", "Autumn-Summer")
+anova_welch_mds1 <- oneway.test(MDS1 ~ Semester, data = ABUND_norm_nmds_ext, var.equal = FALSE)
+anova_welch_mds1
+```
+
+### **13. Perform ANOVA Welch test: MDS2**
+
+```{r welch-mds2}
+ABUND_norm_nmds_ext$Semester2 <- ifelse(ABUND_norm_nmds_ext$Season %in% c("Summer","Spring"),
+                                           "Summer-Spring", "Autumn-Winter")
+anova_welch_mds2 <- oneway.test(MDS2 ~ Semester2, data = ABUND_norm_nmds_ext, var.equal = FALSE)
+anova_welch_mds2
+```
