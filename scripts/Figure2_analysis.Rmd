@@ -205,7 +205,6 @@ samo_vs_tara_diss_df_ext_wa$Date <- as.factor(samo_vs_tara_diss_df_ext_wa$Date)
 samo_vs_tara_diss_df_ext_wa$Season <- factor(samo_vs_tara_diss_df_ext_wa$Season,
                                              levels = c("Summer", "Autumn", "Winter", "Spring" ))
 
-
 text_size <- 15
 
 wlat_plot <- samo_vs_tara_diss_df_ext_wa %>%
@@ -231,3 +230,7 @@ wlat_plot <- samo_vs_tara_diss_df_ext_wa %>%
 wlat_plot
 ```
 
+### **10. Print session info**
+```{r}
+sessionInfo()
+```

@@ -93,7 +93,7 @@ ctd_coords$segment_yend[last_i] <- ABUND_norm_nmds_ext %>% filter(Season == "Sum
 ```
 
 
-### **7. Plot: MDS1 vs MDS2**
+### **6. Plot: MDS1 vs MDS2**
 ```{r}
 x_title <- paste("MDS1")
 y_title <- paste("MDS2")
@@ -146,7 +146,7 @@ nmds_plot_mds1_vs_mds2 <- ggplot(ABUND_norm_nmds_ext, aes(x = MDS1, y = MDS2,
   
 ```
 
-### **8. Create box plot for MDS1**
+### **7. Create box plot for MDS1**
 ```{r}
 boxplot_margin_pc1 <- c(0.2,7.48,0.2,4.85)
 x_title_boxplot_pc1 <- x_title
@@ -178,7 +178,7 @@ boxplot_mds1_vs_season <- ggplot(ABUND_norm_nmds_ext,
 
 
 ```
-### **9. Create boxplot for MDS2**
+### **8. Create boxplot for MDS2**
 
 ```{r}
 boxplot_margin_pc2 <- c(0.2,0.2,0.2,0.2)
@@ -203,7 +203,7 @@ boxplot_mds2_vs_season <- ggplot(ABUND_norm_nmds_ext,
                           ylim(c(y_min, y_max))
 ```
 
-### **10. Merge plots**
+### **9. Merge plots**
 ```{r}
 nmds_plot_mds1_vs_mds2_and_boxplot <- ggarrange(boxplot_mds2_vs_season + rremove("legend") + rremove("x.title") + rremove("x.text"), 
                                                 nmds_plot_mds1_vs_mds2  + rremove("y.title") + rremove("y.text") +
@@ -223,7 +223,7 @@ nmds_plot_mds1_vs_mds2_and_mds1_boxplot <- ggarrange(nmds_plot_mds1_vs_mds2_and_
 nmds_plot_mds1_vs_mds2_and_mds1_boxplot
 ```
 
-### **12. Perform ANOVA Welch test: MDS1**
+### **10. Perform ANOVA Welch test: MDS1**
 Test the differentiation of semesters Winter-Spring and Autumn-Summer along the MDS1 axis.
 ```{r}
 ABUND_norm_nmds_ext$Semester <- ifelse(ABUND_norm_nmds_ext$Season %in% c("Winter","Spring"), 
@@ -236,7 +236,7 @@ anova_welch_mds1 <- ABUND_norm_nmds_ext %>%
 anova_welch_mds1
 ```
 
-### **13. Perform ANOVA Welch test: MDS2**
+### **11. Perform ANOVA Welch test: MDS2**
 Test the differentiation of semesters Summer-Spring and Autumn-Winter along the MDS1 axis.
 
 ```{r}
@@ -249,3 +249,9 @@ anova_welch_mds2 <- ABUND_norm_nmds_ext %>%
 
 anova_welch_mds2
 ```
+### **12. Print session info**
+```{r}
+sessionInfo()
+```
+
+

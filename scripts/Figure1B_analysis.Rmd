@@ -41,7 +41,7 @@ ABUND <- ABUND %>%
   as.matrix()
 ```
 
-### **3. Run NMDS**
+### **4. Run NMDS**
 NMDS is performed on Bray–Curtis dissimilarities computed from Hellinger-transformed OPU abundance profiles.
 
 ```{r}
@@ -50,7 +50,7 @@ set.seed(123)
 ABUND_norm_nmds <- vegan::metaMDS(ABUND_norm, k = 2, try = 50, trymax = 50, threshold = 0.9)
 ```
 
-### **4. Merge tables to plot**
+### **5. Merge tables to plot**
 
 ```{r format}
 ABUND_norm_nmds_ext <- ABUND_norm_nmds$points %>%
@@ -64,7 +64,7 @@ ABUND_norm_nmds_ext$Season <- factor(ABUND_norm_nmds_ext$Season,
                                         levels = c("Summer", "Autumn", "Winter", "Spring"))
 ```
 
-### **5. Add centroid coordinates**
+### **6. Add centroid coordinates**
 The centroid coordinates for each season are calculated to draw segments connecting the centroids.
 
 ```{r centroids}
@@ -229,4 +229,9 @@ ABUND_norm_nmds_ext$Semester2 <- ifelse(ABUND_norm_nmds_ext$Season %in% c("Summe
                                            "Summer-Spring", "Autumn-Winter")
 anova_welch_mds2 <- oneway.test(MDS2 ~ Semester2, data = ABUND_norm_nmds_ext, var.equal = FALSE)
 anova_welch_mds2
+```
+
+### **14. Print session info**
+```{r}
+sessionInfo()
 ```
