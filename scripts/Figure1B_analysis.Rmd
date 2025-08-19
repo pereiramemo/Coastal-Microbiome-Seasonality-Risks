@@ -1,7 +1,9 @@
 ---
 title: "Figure1B"
-output: pdf_document
+author: "Emiliano Pereira"
 date: "2025-08-06"
+output:
+  pdf_document:
 ---
 
 ```{r setup, include=FALSE}
@@ -10,8 +12,6 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ### **Intro**
 Non-Metric Multidimensional Scaling (NMDS) performed on the Bray-Curtis compositional dissimilarity matrices of Operational Protein Units (OPUs), to reproduce the analyses and the Figure 1A from the original publication [Seasonal dynamics of the coastal microbiome and its association with environmental factors](https://doi.org/10.1038/s41597-023-02266-0).
-
-
 
 ### **1. Set the environment**
 
@@ -27,8 +27,8 @@ library(grid)
 ### **2. Load data**
 
 ```{r load}
-ABUND <- readr::read_tsv("../data/opus_workable.tsv", show_col_types = FALSE)
-METADATA <- readr::read_tsv("../data/metadata_workable.tsv", show_col_types = FALSE)
+ABUND <- read_tsv("../data/opus_workable.tsv.gz", show_col_types = FALSE)
+METADATA <- read_tsv("../data/metadata_workable.tsv", show_col_types = FALSE)
 ```
 
 ### 3. Format abundance table
@@ -70,6 +70,7 @@ The centroid coordinates for each season are calculated to draw segments connect
 ```{r centroids}
 ctd_coords <- ABUND_norm_nmds_ext %>%
   dplyr::mutate(Year = lubridate::year(Date)) %>%
+  filter(Year == 2018 | Year == 2019) %>%
   dplyr::group_by(Season) %>%
   dplyr::summarize(mean_nmds1 = mean(MDS1), mean_nmds2 = mean(MDS2), .groups = "drop") %>%
   dplyr::arrange(Season)
@@ -89,15 +90,13 @@ for (i in 1:(nrow(ctd_coords) - 1)) {
 i_last <- nrow(ctd_coords)
 ctd_coords$segment_x[i_last]    <- ctd_coords$mean_nmds1[i_last]
 ctd_coords$segment_y[i_last]    <- ctd_coords$mean_nmds2[i_last]
-ctd_coords$segment_xend[i_last] <- ABUND_norm_nmds_ext %>%
-  dplyr::filter(Season == "Summer") %>% dplyr::summarize(mean_nmds1 = mean(MDS1)) %>% dplyr::pull(mean_nmds1)
-ctd_coords$segment_yend[i_last] <- ABUND_norm_nmds_ext %>%
-  dplyr::filter(Season == "Summer") %>% dplyr::summarize(mean_nmds2 = mean(MDS2)) %>% dplyr::pull(mean_nmds2)
+ctd_coords$segment_xend[i_last] <- ABUND_norm_nmds_ext %>% filter(Season == "Summer" & Year == 2020) %>% summarize(mean_nmds1 = mean(MDS1)) %>% pull(mean_nmds1)
+ctd_coords$segment_yend[i_last] <- ABUND_norm_nmds_ext %>% filter(Season == "Summer" & Year == 2020) %>% summarize(mean_nmds2 = mean(MDS2)) %>% pull(mean_nmds2)
 ```
 
 ### **7. Plot: MDS1 vs MDS2**
 
-```{r plot-settings}
+```{r}
 x_title <- "MDS1"; y_title <- "MDS2"
 x_max <- max(ABUND_norm_nmds_ext$MDS1) + max(ABUND_norm_nmds_ext$MDS1)/10
 x_min <- min(ABUND_norm_nmds_ext$MDS1) - abs(min(ABUND_norm_nmds_ext$MDS1)/10)

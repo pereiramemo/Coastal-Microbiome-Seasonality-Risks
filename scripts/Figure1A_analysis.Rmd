@@ -1,7 +1,9 @@
 ---
 title: "Figure1A"
-output: pdf_document
+author: "Emiliano Pereira"
 date: "2025-08-06"
+output:
+  pdf_document:
 ---
 
 ```{r setup, include=FALSE}
@@ -24,7 +26,7 @@ library(ggcorrplot)
 `asvs_workable.tsv` contains the rarefied ASV abundance profiles, with samples as rows and ASVs as columns.  
 `metadata_workable.tsv` contains the metadata for the samples.
 ```{r}
-ABUND <- read_tsv("../data/asvs_workable.tsv", show_col_types = FALSE) %>%
+ABUND <- read_tsv("../data/asvs_workable.tsv.gz", show_col_types = FALSE) %>%
          column_to_rownames("Date") 
                     
 METADATA <- read_tsv("../data/metadata_workable.tsv", show_col_types = FALSE)
@@ -70,6 +72,7 @@ ctd_coords$segment_y <- NA
 ctd_coords$segment_xend <- NA
 ctd_coords$segment_yend <- NA
 
+
 for (i in 1:(dim(ctd_coords)[1] -1)) {
 
   ctd_coords$segment_x[i] <- ctd_coords$mean_nmds1[i]
@@ -85,8 +88,8 @@ last_i <- dim(ctd_coords)[1]
 
 ctd_coords$segment_x[last_i] <- ctd_coords$mean_nmds1[last_i]
 ctd_coords$segment_y[last_i] <- ctd_coords$mean_nmds2[last_i]
-ctd_coords$segment_xend[last_i] <- ABUND_norm_nmds_ext %>% filter(Season == "Summer") %>% pull(MDS1) %>% mean()
-ctd_coords$segment_yend[last_i] <- ABUND_norm_nmds_ext %>% filter(Season == "Summer") %>% pull(MDS2) %>% mean()
+ctd_coords$segment_xend[last_i] <- ABUND_norm_nmds_ext %>% filter(Season == "Summer" & Year  == 2020) %>% pull(MDS1) %>% mean()
+ctd_coords$segment_yend[last_i] <- ABUND_norm_nmds_ext %>% filter(Season == "Summer" & Year  == 2020) %>% pull(MDS2) %>% mean()
 ```
 
 
