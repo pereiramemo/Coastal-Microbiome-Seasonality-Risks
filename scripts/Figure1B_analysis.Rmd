@@ -28,7 +28,7 @@ library(grid)
 
 ```{r load}
 ABUND <- read_tsv("../data/opus_workable.tsv.gz", show_col_types = FALSE)
-METADATA <- read_tsv("../data/metadata_workable.tsv", show_col_types = FALSE)
+METADATA <- read_tsv("../data/samo_metadata_workable.tsv", show_col_types = FALSE)
 ```
 
 ### 3. Format abundance table

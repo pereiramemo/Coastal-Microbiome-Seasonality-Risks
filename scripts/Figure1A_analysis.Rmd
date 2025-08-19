@@ -29,7 +29,7 @@ library(ggcorrplot)
 ABUND <- read_tsv("../data/asvs_workable.tsv.gz", show_col_types = FALSE) %>%
          column_to_rownames("Date") 
                     
-METADATA <- read_tsv("../data/metadata_workable.tsv", show_col_types = FALSE)
+METADATA <- read_tsv("../data/samo_metadata_workable.tsv", show_col_types = FALSE)
 ```
 
 ### **3. Run NMDS**
