@@ -1,0 +1,127 @@
+---
+title: "Figure3A"
+author: "Emiliano Pereira"
+date: "2025-08-06"
+output:
+  pdf_document:
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Intro
+Compares the functional diversity and richness between the communities associated to the 
+semesters Summer-Autumn and Winter-Spring, to reproduce the analyses and the Figure 3B
+from the original publication [Seasonal dynamics of the coastal microbiome and its association with environmental factors](https://doi.org/10.1038/s41597-023-02266-0).
+
+### **1. Set the environment**
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(vegan)
+```
+
+### **2. Load data**
+`opus_workable.tsv` contains the rarefied OPUs abundance profiles, with samples as rows and OPUs as columns.  
+`date2season2community.tsv` is table mapping the date, season, and community columns.
+
+```{r}
+ABUND <- read_tsv("../data/opus_workable.tsv.gz", show_col_types = FALSE)
+DATE2SEASON2COMMUITY <- read_tsv("../data/date2season2community.tsv", show_col_types = FALSE)
+```
+
+### **3. Format ABUND as wide**
+```{r}
+ABUND <- ABUND %>%
+         pivot_wider(values_fill = 0, 
+                     values_from = abundance, 
+                     names_from = opu_id) %>%
+         column_to_rownames("Date")
+```
+
+### **4. Compute diversity**
+Compute Shannon diversity, observed richness and Chao1 estimator.
+```{r}
+div <- diversity(ABUND)
+rich_obs <- estimateR(ABUND)["S.obs",]
+rich_chao1 <- estimateR(ABUND)["S.chao1",]
+
+output_long_df <- data.frame(Shannon = div, 
+                             Richness_obs = rich_obs,
+                             Richness_chao1 = rich_chao1) %>%
+                   rownames_to_column(var = "Date") %>%
+                   pivot_longer(names_to = "Index", values_to = "value", 
+                                cols = -Date) %>%
+                   left_join(DATE2SEASON2COMMUITY %>% 
+                               select(Date, Community) %>%
+                               mutate(Date= as.character(Date)), 
+                             by = "Date") 
+
+```
+
+### **5.Run ANOVA Welch test** 
+Perform ANOVA Welch test to evaluate if the diversity and richness differences are significant. 
+```{r}
+
+anova_welch_shannon <- output_long_df %>%
+  filter(Index == "Shannon") %>%
+  oneway.test(value ~ Community, 
+              data = ., var.equal = FALSE) 
+
+anova_welch_shannon
+
+anova_welch_rich_obs <- output_long_df %>%
+  filter(Index == "Richness_obs") %>%
+  oneway.test(value ~ Community, 
+              data = ., var.equal = FALSE) 
+
+anova_welch_rich_obs
+
+anova_welch_rich_chao <- output_long_df %>%
+  filter(Index == "Richness_chao1") %>%
+  oneway.test(value ~ Community, 
+              data = ., var.equal = FALSE) 
+
+anova_welch_rich_chao
+```
+
+### **6. Plot diversity and richness value distributions**
+
+```{r}
+text_size <- 12
+
+plot_labels <- c("Shannon" = "Shannon diversity", 
+                  "Richness_obs" = "Observed richness", 
+                  "Richness_chao1" = "Chao1 estimator")
+
+div_plot <- output_long_df %>%
+  filter(Index %in% c("Shannon", "Richness_obs", "Richness_chao1")) %>%
+  ggplot(aes(x = Community, y = value, fill = Community)) +
+  facet_wrap(~Index, scales = "free", labeller = as_labeller(plot_labels)) +
+  xlab("Semester") +
+  ylab("Index value") +
+  scale_y_continuous(labels = scales::scientific_format()) +
+  scale_x_discrete(labels = c("S1" = "Summer-Autumn", "S2" = "Winter-Spring")) +
+  # scale_fill_manual(values = c("#e28743","#063970")) +
+  scale_fill_manual(values = c("#b14b34","#292c33")) +
+  geom_boxplot(alpha = 0.8) +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(size = text_size-2, angle = 45, hjust = 1),
+    axis.text.y = element_text(size = text_size-2),
+    axis.title.x = element_text(size = text_size +2, margin = unit(c(4,0,0,0), "mm")),
+    axis.title.y = element_text(size = text_size +2, margin = unit(c(0,2,0,0), "mm")),
+    strip.text = element_text(size = text_size),
+    strip.background = element_blank()
+  ) +
+  guides(fill = "none")
+
+
+
+div_plot
+```
+
+### **7. Print session info**
+```{r}
+sessionInfo()
+```
