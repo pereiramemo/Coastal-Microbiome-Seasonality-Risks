@@ -1,0 +1,105 @@
+---
+title: "Figure6C"
+author: "Emiliano Pereira"
+date: "2025-08-06"
+output:
+  pdf_document:
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### **Intro**
+Temperature range analysis of taxa between the Summer–Autumn and Winter–Spring semesters, to reproduce the results of Figure 6B from the original publication [Seasonal dynamics of the coastal microbiome and its association with environmental factors](https://doi.org/10.1038/s41597-023-02266-0).
+
+### **1. Set the environment**
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(vegan)
+```
+
+### **2. Load data**
+`asvs_workable.tsv` contains the rarefied ASV abundance profiles, with samples as rows and ASVs as columns.  
+`samo_metadata_workable.tsv` contains the metadata for the samples.  
+`date2season2community.tsv` is a table mapping the date, season, and community columns.
+
+```{r}
+ABUND <- read_tsv("../data/asvs_workable.tsv.gz", show_col_types = FALSE)
+METADATA <- read_tsv("../data/samo_metadata_workable.tsv", show_col_types = FALSE)
+DATE2SEASON2COMMUITY <- read_tsv("../data/date2season2community.tsv", show_col_types = FALSE)
+```
+### **3. Convert ABUND to long format and map metadata**
+```{r}
+ABUND_long <- ABUND %>%
+              mutate(Date = as.Date(Date)) %>%
+              pivot_longer(-Date, names_to = "asv_id", values_to = "abund") %>%
+              left_join(x = ., 
+                        y  = METADATA %>% dplyr::select(Date, sample_name, Temperature_C), 
+                        by = c("Date")) %>%
+              left_join(x = ., 
+                        y  = DATE2SEASON2COMMUITY , 
+                        by = "Date") %>%
+              filter(abund > 0) # it is critical to remove zeros, other wise asv ranges in S1 and S2 are the same. 
+```
+
+### **4. Compute temperature range for each ASV**
+```{r}
+asvs2range <- ABUND_long %>%
+                   group_by(asv_id) %>%
+                   mutate(max_temp = max(Temperature_C), 
+                          min_temp = min(Temperature_C)) %>%
+                   mutate(asvs_temp_range = max_temp - min_temp)
+```
+### **5. Create boxplot comparing Semester's temperature vs ASVs optimal temperature**
+```{r}
+text_size <- 12
+
+range_temp_boxplot <- ggplot(asvs2range, aes(x = Community, 
+                                                  y = asvs_temp_range, fill = Community)) +
+                      # add a line at y = 1
+                      geom_boxplot(alpha = 0.8) +
+                      theme_minimal() +
+                      xlab("Semester") +
+                      ylab("Temperature range (°C)") +
+                      scale_fill_manual(values = c("#b14b34","#292c33"),
+                                        labels = c("S1" = "Summer-Autumn", "S2" = "Winter-Spring"),
+                                        name = "Semester") +
+                      scale_x_discrete(labels= c("S1" = "Summer-Autumn", "S2" = "Winter-Spring")) +
+                      theme_bw() +
+                      theme(
+                        axis.text.x = element_text(size = text_size),
+                        axis.text.y = element_text(size = text_size),
+                        axis.title.x = element_text(size = text_size +2, margin = unit(c(4,0,0,0), "mm")),
+                        axis.title.y = element_text(size = text_size +2, margin = unit(c(0,2,0,0), "mm")),
+                        strip.text = element_text(size = text_size+4),
+                        strip.background = element_blank(),
+                        # increase legend text 
+                        legend.text = element_text(size = text_size),
+                        legend.title = element_text(size = text_size+4)
+                      ) +
+                      # remoge legend
+                      theme(legend.position = "none") 
+
+
+range_temp_boxplot_wtext <- range_temp_boxplot +
+                          # add text to the plot
+                          geom_segment(aes(x = 1.2, y = 12.5, xend = 1.8, yend = 12.5), 
+                                       color = "gray10", alpha = 0.7, linewidth = 0.1) +
+                          annotate("text", x = 1.5, y = 12.8, label = "***", size = 5)
+
+range_temp_boxplot_wtext
+
+```
+
+### **6. Run Welch's ANOVA comparing the asvs_temp_range**
+```{r}
+wtest_range_temp <- oneway.test(asvs_temp_range ~ Community, 
+                                data = asvs2range, var.equal = FALSE) 
+
+wtest_range_temp
+```
+### **9. Print session info**
+```{r}
+sessionInfo()
+```

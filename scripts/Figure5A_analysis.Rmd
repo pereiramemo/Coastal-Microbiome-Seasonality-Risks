@@ -1,0 +1,116 @@
+---
+title: "Figure5A"
+author: "Emiliano Pereira"
+date: "2025-08-06"
+output:
+  pdf_document:
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### **Intro**
+Compares the NTI values between semesters to reproduce the results of Figure 5A from the original publication [Seasonal dynamics of the coastal microbiome and its association with environmental factors](https://doi.org/10.1038/s41597-023-02266-0).
+
+### **1. Set the environment**
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(vegan)
+```
+
+### **2. Load data**
+`NTI_weighted_26_1000_asvs.csv` weighted Nearest Taxin Index (NTI) values for the 1000 most abundant ASVs in the dataset. `samo_metadata_workable.tsv` contains the metadata for the samples.
+`date2season2community.tsv` is a table mapping the date, season, and community columns.
+
+```{r}
+NTI <- read_csv("../data/tree_analysis/NTI_weighted_26_1000_asvs.csv", show_col_types = FALSE)
+colnames(NTI)[1] <- "sample_name"
+METADATA <- read_tsv("../data/samo_metadata_workable.tsv", show_col_types = FALSE)
+DATE2SEASON2COMMUITY <- read_tsv("../data/date2season2community.tsv", show_col_types = FALSE)
+```
+
+## **3. Format and add metadata info to the NTI table**
+```{r}
+NTI_ext <- NTI %>%
+           filter(sample_name %in% METADATA$sample_name) %>%
+           left_join(x = ., y = METADATA, by = "sample_name") %>%
+           left_join(x = ., y = DATE2SEASON2COMMUITY, by = "Date")  %>%
+           mutate(mntd.obs.z = -mntd.obs.z) %>%
+           mutate(bnti_signif = if_else(mntd.obs.z > 2, "gt", 
+                        if_else(mntd.obs.z < -2, "lt", "not_signif")))
+
+```
+
+### **4. Get percentage of samples with nti greater than 2**
+```{r}
+
+NTI_percs <- NTI_ext %>%
+             group_by(Community) %>%
+             summarise(n = n(), 
+                       n_bnti_gt_2 = sum(mntd.obs.z > 2), 
+                       n_bnti_lt_2 = sum(mntd.obs.z < -2), 
+                       perc_bnti_gt_2 = n_bnti_gt_2/n, 
+                       perc_bnti_lt_2 = n_bnti_lt_2/n) %>%
+             arrange(desc(n))
+
+nti_perc_s1 <- NTI_percs$perc_bnti_gt_2[NTI_percs$Community == "S1"] 
+nti_perc_s2 <- NTI_percs$perc_bnti_gt_2[NTI_percs$Community == "S2"]
+```
+
+### **5. Create NTI boxplot**
+```{r}
+
+scaling_factor <- 15
+scaling_constat <- -50
+text_size <- 12
+
+nti_boxplots <- ggplot(NTI_ext, aes(x = Community, 
+                                     y = mntd.obs.z)) +
+                xlab("Semester") +
+                ylab("NTI") +
+                scale_fill_manual(values = c("#b14b34","#292c33")) +
+                geom_hline(yintercept = 2, linetype = "dashed") +
+                geom_hline(yintercept = -2, linetype = "dashed") +
+                scale_x_discrete(labels = c("S1" = "Summer-Autumn", 
+                                            "S2" = "Winter-Spring")) +
+                theme_bw() +
+                theme(
+                  axis.text.x = element_text(size = text_size,  margin = margin(b = 5)),
+                  axis.text.y = element_text(size = text_size),
+                  axis.title = element_text(size =  text_size +4),
+                  strip.text = element_text(size = text_size+4),
+                  strip.background = element_blank(),
+                ) +
+                guides(fill = "none") +
+                geom_boxplot(alpha = 0.8, aes(fill = Community))  +
+                geom_text(data = NTI_percs, aes(x = Community, y = 3.5,
+                                                 label = scales::percent(perc_bnti_gt_2, accuracy = 0.01)),
+                          vjust = -0.5, size = 2.5) 
+
+
+y_pos <- max(NTI_ext$mntd.obs.z, na.rm = TRUE) * 1.2
+
+nti_boxplots_ext <- nti_boxplots +
+                    geom_text(data = NTI_percs,
+                              aes(x = Community, y = 3.5, 
+                                  label = scales::percent(perc_bnti_gt_2, accuracy = 0.01)),
+                              vjust = -0.5, size = 2.5) +
+                      # ---- significance bar ----
+                    annotate("segment",
+                             x = 1, xend = 2,
+                             y = y_pos, yend = y_pos,
+                             size = 0.5) +
+                    annotate("text",
+                             x = 1.5, y = y_pos,
+                             label = "*",
+                             vjust = 0.3,
+                             size = 4)
+
+nti_boxplots_ext
+
+```
+### **6. Print session info**
+```{r}
+sessionInfo()
+```

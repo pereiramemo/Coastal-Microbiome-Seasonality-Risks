@@ -1,0 +1,197 @@
+---
+title: "Figure5B"
+author: "Emiliano Pereira"
+date: "2025-08-06"
+output:
+  pdf_document:
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### **Intro**
+Compares the bNTI values between semesters to reproduce the results of Figure 5B from the original publication [Seasonal dynamics of the coastal microbiome and its association with environmental factors](https://doi.org/10.1038/s41597-023-02266-0).
+
+### **1. Set the environment**
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(vegan)
+```
+
+### **2. Load data**
+`bNTI_weighted_26_1000_asvs.csv` weighted beta Nearest Taxin Index (NTI) values for the 1000 most abundant ASVs in the dataset. `samo_metadata_workable.tsv` contains the metadata for the samples.
+`date2season2community.tsv` is a table mapping the date, season, and community columns.
+
+```{r}
+bNTI <- read_csv("../data/tree_analysis/bNTI_weighted_26_1000_asvs.csv", show_col_types = FALSE,
+                  col_names = T) %>% column_to_rownames("...1")
+METADATA <- read_tsv("../data/samo_metadata_workable.tsv", show_col_types = FALSE)
+DATE2SEASON2COMMUITY <- read_tsv("../data/date2season2community.tsv", show_col_types = FALSE)
+```
+
+
+### **3. Extend metadata table**
+```{r}
+METADATA_ext <- METADATA %>%
+                left_join(DATE2SEASON2COMMUITY, 
+                          by =c("Date"))
+```
+
+## **4. Convert bNTI to long format**
+```{r}
+bNTI_long <- bNTI %>% 
+             as.data.frame() %>%
+             rownames_to_column("sample_name") %>%
+             pivot_longer(cols = -sample_name, 
+                          names_to = "sample_name_vs", 
+                          values_to = "bnti") %>%
+             filter(is.na(bnti) != T)
+
+```
+
+### **5. Select samples** 
+```{r}
+
+sample2date <- METADATA_ext %>% 
+               select(Date, sample_name) 
+
+bNTI_long_sel <- bNTI_long %>%
+                 filter(sample_name %in% sample2date$sample_name &
+                        sample_name_vs %in% sample2date$sample_name)
+```
+### **6. Add metadata**
+```{r}
+METADATA_vars <- METADATA_ext %>% select(sample_name, Date, Community)
+
+bNTI_long_sel_ext <- bNTI_long_sel %>%
+                     left_join(METADATA_vars, by = c("sample_name" = "sample_name")) %>%
+                     left_join(METADATA_vars, by = c("sample_name_vs" = "sample_name"), suffix = c("","_vs")) %>%
+                     mutate(type = paste(Community, Community_vs, sep = "_vs_"),
+                            type2 = if_else(Community == Community_vs & Community == "S1","within_S1", NA),
+                            type2 = if_else(Community == Community_vs & Community == "S2","within_S2", type2),
+                            type2 = if_else(Community != Community_vs,"btween", type2))
+
+```
+### **7. Select and order dates from S1 and S2**
+
+```{r}
+
+s1_dates_ord <- METADATA_vars %>%
+                filter(Community == "S1") %>%
+                select(Date) %>%
+                arrange(Date)
+
+s2_dates_ord <- METADATA_vars %>%
+                filter(Community == "S2") %>%
+                select(Date) %>%
+                arrange(Date)
+
+```
+
+### **8. Select consecutive dates from S1** 
+
+```{r}
+bNTI_long_sel_ext_s1_list <- list()
+
+for (i in 2:dim(s1_dates_ord)[1]) {
+ 
+  date_i_curr <- s1_dates_ord[i,"Date", drop =T]
+  date_i_prev <- s1_dates_ord[i-1,"Date",drop =T]
+  dates_i <- c(date_i_curr, date_i_prev)
+  dates_i_str <- paste(dates_i[1], dates_i[2])
+  
+  bNTI_long_sel_ext_s1_list[[dates_i_str]] <- bNTI_long_sel_ext %>%
+                                                  filter(as.character(Date) %in% c(dates_i) &
+                                                         as.character(Date_vs) %in% c(dates_i))
+   
+}
+
+# create a data frame from all elements in the list
+bNTI_long_sel_ext_s1 <- do.call(rbind, bNTI_long_sel_ext_s1_list)
+
+```
+
+### **9. Select consecutive dates from S2** 
+```{r}
+
+bNTI_long_sel_ext_s2_list <- list()
+
+for (i in 2:dim(s2_dates_ord)[1]) {
+  
+  date_i_curr <- s2_dates_ord[i,"Date", drop =T]
+  date_i_prev <- s2_dates_ord[i-1,"Date",drop =T]
+  dates_i <- c(date_i_curr, date_i_prev)
+  dates_i_str <- paste(dates_i[1], dates_i[2])
+  
+  bNTI_long_sel_ext_s2_list[[dates_i_str]] <- bNTI_long_sel_ext %>%
+                                              filter(as.character(Date) %in% c(dates_i) &
+                                                       as.character(Date_vs) %in% c(dates_i))
+  
+  
+}
+
+bNTI_long_sel_ext_s2 <- do.call(rbind, bNTI_long_sel_ext_s2_list)
+
+```
+
+### **10. Concat both data frames**
+```{r}
+bNTI_long_sel_ext_ord <- rbind(bNTI_long_sel_ext_s1, bNTI_long_sel_ext_s2)
+```
+
+#### **11. Get percentage of samples with bNTI greater or lower than 2**
+
+```{r}
+bNTI_percs <- bNTI_long_sel_ext_ord %>%
+              group_by(type) %>%
+              summarise(n = n(), 
+                        n_bnti_gt_2 = sum(bnti > 2), 
+                        n_bnti_lt_2 = sum(bnti < -2), 
+                        perc_bnti_gt_2 = n_bnti_gt_2/n, 
+                        perc_bnti_lt_2 = n_bnti_lt_2/n,
+                        max_bnti = max(bnti)) %>%
+              arrange(desc(n))
+```
+
+### **12. Plot bNTI per transition type**
+
+```{r}
+text_size <- 10
+
+btni_boxplots <- ggplot(bNTI_long_sel_ext_ord, 
+                        aes(x = type, y = bnti, 
+                            fill = type)) +
+  xlab("Semester") +
+  ylab("bNTI") +
+  geom_boxplot(alpha = 0.8) +
+  geom_hline(yintercept = 2, linetype = "dashed") +
+  geom_hline(yintercept = -2, linetype = "dashed") +
+  scale_fill_manual(values = c("#b14b34","#292c33")) +
+  scale_x_discrete(labels = c("S1_vs_S1" = "Summer-Autumn", 
+                              "S2_vs_S2" = "Winter-Spring")) +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(size = text_size, margin = margin(b = 5)),
+    axis.text.y = element_text(size = text_size),
+    axis.title = element_text(size =  text_size +4),
+    strip.text = element_text(size = text_size+4),
+    strip.background = element_blank(),
+    # extend margin
+    plot.margin = margin(1, 1, 1, 1, "cm")
+  ) +
+  #  add percentage of samples with bnti > 2 above bar plot
+  # move the number for better visualization
+  geom_text(data = bNTI_percs, aes(x = type, y = 3,
+                                   label = scales::percent(perc_bnti_gt_2, accuracy = 0.01),
+                                   hjust  = -0.2),
+            vjust = -0.5, size = 2.5) +
+  guides(fill = "none")
+
+btni_boxplots
+```
+
+### **13. Print session info**
+```{r}
+sessionInfo()
+```

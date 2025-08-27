@@ -1,0 +1,281 @@
+---
+title: "Figure6B"
+author: "Emiliano Pereira"
+date: "2025-08-06"
+output:
+  pdf_document:
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### **Intro**
+Functional diversity loss simulated by increasing water temperature scenarios and comparing semesters to reproduce the results of Figure 6B from the original publication. [Seasonal dynamics of the coastal microbiome and its association with environmental factors](https://doi.org/10.1038/s41597-023-02266-0).
+
+### **1. Set the environment**
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(vegan)
+source("../scripts/resources/increasing_temp_simulation.R")
+```
+
+### **2. Load data**
+`opuss_workable.tsv` contains the rarefied OPU abundance profiles, with samples as rows and OPUs as columns.  
+`samo_metadata_workable.tsv` contains the metadata for the samples.  
+`date2season2community.tsv` is a table mapping the date, season, and community columns.
+
+```{r}
+ABUND <- read_tsv("../data/opus_workable.tsv.gz", show_col_types = FALSE)
+METADATA <- read_tsv("../data/samo_metadata_workable.tsv", show_col_types = FALSE)
+DATE2SEASON2COMMUITY <- read_tsv("../data/date2season2community.tsv", show_col_types = FALSE)
+```
+
+### **3. Convert ABUND to long format and map metadata**
+```{r}
+ABUND_long <- ABUND %>%
+              left_join(x = ., 
+                        y = METADATA %>% dplyr::select(Date, Temperature_C), 
+                        by = c("Date")) %>%
+              filter(abundance > 0) %>%
+              left_join(x = ., 
+                        y  = DATE2SEASON2COMMUITY, 
+                        by = "Date")
+```
+### **4. Compute temperature range for each semester**
+
+```{r}
+semesters2range <- ABUND_long %>% 
+                        group_by(Community) %>%
+                        summarise(min_temp = min(Temperature_C), 
+                                  max_temp = max(Temperature_C))
+
+s12range <- semesters2range %>% filter(Community == "S1")
+s22range <- semesters2range %>% filter(Community == "S2")
+```
+### **5. Compute temperature range for each OPU**
+
+```{r}
+opus2range <- ABUND_long %>% 
+              group_by(opu_id) %>%
+              summarise(min_temp = min(Temperature_C), 
+                        max_temp = max(Temperature_C)) %>%
+              rename(seq_id = opu_id)
+```
+
+### **6. Simulate diversity loss in semester S1**
+
+```{r}
+
+ABUND_wide <- ABUND %>%
+              pivot_wider(names_from = opu_id, 
+                          values_from = abundance, 
+                          values_fill = 0) %>%
+              column_to_rownames(var = "Date")
+
+s1_i <- DATE2SEASON2COMMUITY %>% 
+        filter(as.character(Date) %in% rownames(ABUND_wide)) %>%
+        filter(Community == "S1") %>% 
+        pull(Date) %>%
+        as.character()
+
+ABUND_s1 <- ABUND_wide[s1_i,] %>% as.matrix()
+
+s2_i <- DATE2SEASON2COMMUITY %>% 
+  filter(as.character(Date) %in% rownames(ABUND_wide)) %>%
+  filter(Community == "S2") %>% 
+  pull(Date) %>%
+  as.character()
+
+ABUND_s2 <- ABUND_wide[s2_i,] %>% as.matrix()
+```
+
+### **7. Simulate diversity loss in semester S1**
+
+```{r}
+temp_increase <- seq(0, 3, 0.2)
+
+s1_temp_sim <- increasing_temp_simulation(abund_wide = ABUND_s1,
+                                          abund_wide_ref = ABUND_s2,
+                                          seqs2range = opus2range, 
+                                          semester2range = s12range,
+                                          temp_increase = temp_increase)
+```
+
+### **8. Simulate diversity loss in semester S2**
+
+```{r}
+s2_temp_sim <- increasing_temp_simulation(abund_wide = ABUND_s2, 
+                                          abund_wide_ref = ABUND_s1,
+                                          seqs2range = opus2range, 
+                                          semester2range = s22range,
+                                          temp_increase = temp_increase)
+
+```
+
+### **9. Extract diversity values from nested lists**
+
+```{r}
+s1_temp_div_df <- map_dfr(s1_temp_sim, ~ {
+  tibble(
+    temp = .x$temp,
+    diversity = .x$div$diversity,
+    rich_obs = .x$div$rich_obs,
+    rich_chao1 = .x$div$rich_chao1,
+    semester = "S1"
+  )
+})
+
+s2_temp_div_df <- map_dfr(s2_temp_sim, ~ {
+  tibble(
+    temp = .x$temp,
+    diversity = .x$div$diversity,
+    rich_obs = .x$div$rich_obs,
+    rich_chao1 = .x$div$rich_chao1,
+    semester = "S2"
+  )
+})
+
+temp_div_long_df <- rbind(s1_temp_div_df, s2_temp_div_df) %>%
+  pivot_longer(cols = c("diversity", "rich_obs", "rich_chao1"), 
+               names_to = "metric", values_to = "value") %>%
+  group_by(temp, semester, metric) %>%
+  summarize(mean = mean(value),
+            sd = sd(value)) 
+
+
+temp_div_long_df
+```
+
+### **10. Identify significant differences in diversity loss** 
+```{r}
+
+temp_div_long_df2 <- rbind(s1_temp_div_df, s2_temp_div_df) %>%
+  pivot_longer(cols = c("diversity", "rich_obs", "rich_chao1"), 
+               names_to = "metric", values_to = "value")
+
+format_pvalues <- function(anova_welch) {
+  
+  p_value <- anova_welch$p.value
+  
+  if (is.na(anova_welch$p.value) == T) {
+    
+    return(NA)
+  } else {
+    
+    if (p_value < 0.001) {
+      p_value <- "<0.001"
+    } else {
+      if (p_value < 0.01) {
+        p_value <- "<0.01"
+      } else {
+        if (p_value < 0.05) {
+          p_value <- "<0.05"
+        } else {
+          p_value <- ">0.05"
+        }
+      }
+    }
+  }
+  return(p_value)
+  
+}
+
+for (i in temp_increase[-1]) {
+  
+  temp_div_df_i <- temp_div_long_df2 %>%
+    filter(temp == i)
+  
+  
+  # diversity
+  welch_anova_i_div <- temp_div_df_i %>%
+    filter(metric == "diversity") %>%
+    oneway.test(value ~ semester, 
+                data = .,
+                var.equal = FALSE)
+  
+  rows_i <- temp_div_long_df$temp == i & temp_div_long_df$metric == "diversity"
+  temp_div_long_df[rows_i, "p_value"] <- welch_anova_i_div$p.value
+  temp_div_long_df[rows_i, "p_value_formatted"] <- format_pvalues(welch_anova_i_div)
+  
+  # richness observed
+  welch_anova_i_rich_obs <- temp_div_df_i %>%
+    filter(metric == "rich_obs") %>%
+    oneway.test(value ~ semester, 
+                data = .,
+                var.equal = FALSE)
+  
+  rows_i <- temp_div_long_df$temp == i & temp_div_long_df$metric == "rich_obs"
+  temp_div_long_df[rows_i, "p_value"] <- welch_anova_i_rich_obs$p.value
+  temp_div_long_df[rows_i, "p_value_formatted"] <- format_pvalues(welch_anova_i_rich_obs)
+  
+  # richness Chao
+  welch_anova_i_rich_chao1 <- temp_div_df_i %>%
+    filter(metric == "rich_chao1") %>%
+    oneway.test(value ~ semester, 
+                data = .,
+                var.equal = FALSE)
+  
+  rows_i <- temp_div_long_df$temp == i & temp_div_long_df$metric == "rich_chao1"
+  temp_div_long_df[rows_i, "p_value"] <- welch_anova_i_rich_chao1$p.value
+  temp_div_long_df[rows_i, "p_value_formatted"] <- format_pvalues(welch_anova_i_rich_chao1)
+  
+}
+
+```
+
+### **11. Plot diversity loss** 
+
+```{r}
+text_size <- 8
+
+plot_labels <- c("diversity" = "Shannon diversity", 
+                 "rich_obs" = "Observed richness", 
+                 "rich_chao1" = "Chao1 estimator")
+
+temp_div_long_df <- temp_div_long_df %>%
+                    mutate(y_max = if_else(metric == "diversity", 104, NA),
+                           y_max = if_else(metric == "rich_obs", 115, y_max),
+                           y_max = if_else(metric == "rich_chao1", 120, y_max))
+
+div_plot <- ggplot(temp_div_long_df, aes(x = temp, y = mean, color = semester)) +
+            geom_line() +
+            facet_wrap(~metric, scales = "free_y", labeller = as_labeller(plot_labels)) +
+            theme_minimal() +
+            xlab("Temperature increment (°C)") +
+            ylab("Scaled mean index value") +
+            scale_color_manual(values = c("#b14b34","#292c33"), 
+                               labels = c("S1" = "Summer-Autumn", "S2" = "Winter-Spring"),
+                               name = "Semester") +
+            geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd),  linewidth = 0.3,  width = 0.1) +
+            scale_y_continuous(breaks = seq(0, 100, 20)) +
+            theme_bw() +
+            theme(
+              axis.text.x = element_text(size = text_size-2),
+              axis.text.y = element_text(size = text_size-2),
+              axis.title.x = element_text(size = text_size +2, margin = unit(c(4,0,0,0), "mm")),
+              axis.title.y = element_text(size = text_size +2, margin = unit(c(0,2,0,0), "mm")),
+              strip.text = element_text(size = text_size+4),
+              strip.background = element_blank(),
+              # increase legend text 
+              legend.text = element_text(size = text_size),
+              legend.title = element_text(size = text_size+4)
+            )  +
+            geom_text(data = temp_div_long_df %>% filter(p_value_formatted == "<0.001"), 
+                      aes(x = temp, y = y_max, label = "***", vjust = 0.7), 
+                      size = 2, angle = 90, show.legend  = FALSE) +
+            geom_text(data = temp_div_long_df %>% filter(p_value_formatted == "<0.01"), 
+                      aes(x = temp, y = y_max, label = "**", vjust = 0.7), 
+                      size = 2, angle = 90, show.legend  = FALSE) +
+            geom_text(data = temp_div_long_df %>% filter(p_value_formatted == "<0.05"), 
+                      aes(x = temp, y = y_max, label = "*", vjust = 0.7), 
+                      size = 2, angle = 90, show.legend  = FALSE) 
+
+div_plot 
+
+```
+
+### **12. Print session info**
+```{r}
+sessionInfo()
+```
