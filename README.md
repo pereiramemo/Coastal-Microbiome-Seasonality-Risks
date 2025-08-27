@@ -27,7 +27,7 @@ Contains the input data used for the analyses:
 - `asvs_workable.tsv.gz` – rarefied ASV abundance table (wide format)
 - `asv_table_nbcandem_annot_clean_long.tsv.gz` – ASV abundance with taxonomic annotation (long format)
 - `date2season2community.tsv` – mapping of sampling dates to seasons and communities
-- **`kofam/`** – KEGG Orthology (KO) mappings and classifications:
+- **`kofam/`** 
   - `ko2desc.tsv` – KO → description
   - `KO_classification.csv` – custom KO classification into functional categories
   - `pathway2desc.tsv` – KEGG pathway → description
@@ -38,7 +38,7 @@ Contains the input data used for the analyses:
 - `samo_metadata_workable.tsv` – metadata for SAMO samples
 - `samo_vs_tara_workable.tsv.gz` – rarefied abundance table for SAMO + TARA samples (wide format)
 - `tara_metadata_workable.tsv` – metadata for TARA samples
-- **`tree_analysis/`** – results from phylogenetic turnover analysis:
+- **`tree_analysis/`** 
   - `bNTI_weighted_26_1000_asvs.csv` – bNTI values
   - `NTI_weighted_26_1000_asvs.csv` – NTI values
 
