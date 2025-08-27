@@ -24,7 +24,7 @@ library(ggcorrplot)
 
 ### **2. Load data**
 `asvs_workable.tsv` contains the rarefied ASV abundance profiles, with samples as rows and ASVs as columns.  
-`metadata_workable.tsv` contains the metadata for the samples.
+`samo_metadata_workable.tsv` contains the metadata for the samples.
 ```{r}
 ABUND <- read_tsv("../data/asvs_workable.tsv.gz", show_col_types = FALSE) %>%
          column_to_rownames("Date") 
