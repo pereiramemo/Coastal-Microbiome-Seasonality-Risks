@@ -6,7 +6,7 @@ This repository contains the data and scripts to reproduce the main findings sho
 
 ##  Dependencies
 
-- `doParallel`
+- [doParallel](https://rdrr.io/rforge/doParallel)
 - `fANCOVA`
 - `ggpubr`
 - `indicspecies`
