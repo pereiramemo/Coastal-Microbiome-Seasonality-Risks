@@ -1,0 +1,8 @@
+r-doparallel
+r-fancova
+r-ggpubr
+r-indicspecies
+r-maps
+r-tidyverse
+r-vegan
+r-rmarkdown
