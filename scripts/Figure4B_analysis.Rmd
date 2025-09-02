@@ -25,8 +25,8 @@ source("../scripts/resources/rare_indval.R")
 ### **2. Load data**
 `opus2ko_non_rare_long.tsv.gz`: non-rarefied OPUs abundance table with KO annotations (long format).  
 `METADATA`:  metadata for SAMO samples.  
-`KO_class.csv` custom KO classification into functional categories.  
-`KO_desc.csv`  KO pathway description.  
+`KO_class.csv`: custom KO classification into functional categories.  
+`KO_desc.csv`: KO pathway description.  
 
 ```{r}
 KO_TBL <- read_tsv("../data/opus/opus2ko_non_rare_long.tsv.gz", show_col_types = FALSE)
