@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ### **Intro**
-Temperature range analysis of taxa between the Summer–Autumn and Winter–Spring semesters, to reproduce the results of Figure 6B from the original publication [Seasonal dynamics of the coastal microbiome and its association with environmental factors](https://doi.org/10.1038/s41597-023-02266-0).
+Temperature range analysis of taxa between the Summer–Autumn and Winter–Spring semesters, to reproduce the results of Figure 6D from the original publication [Seasonal dynamics of the coastal microbiome and its association with environmental factors](https://doi.org/10.1038/s41597-023-02266-0).
 
 ### **1. Set the environment**
 ```{r, message=FALSE, warning=FALSE}
@@ -20,14 +20,11 @@ library(vegan)
 ```
 
 ### **2. Load data**
-`asvs_workable.tsv` contains the rarefied ASV abundance profiles, with samples as rows and ASVs as columns.  
-`samo_metadata_workable.tsv` contains the metadata for the samples.  
-`date2season2community.tsv` is a table mapping the date, season, and community columns.
-
+`asvs_workable.tsv`: rarefied ASV abundance table (wide format).  
+`samo_metadata_workable.tsv`: metadata for SAMO samples.  
 ```{r}
-ABUND <- read_tsv("../data/asvs_workable.tsv.gz", show_col_types = FALSE)
-METADATA <- read_tsv("../data/samo_metadata_workable.tsv", show_col_types = FALSE)
-DATE2SEASON2COMMUITY <- read_tsv("../data/date2season2community.tsv", show_col_types = FALSE)
+ABUND <- read_tsv("../data/asvs/asvs_workable.tsv.gz", show_col_types = FALSE)
+METADATA <- read_tsv("../data/metadata/samo_metadata_workable.tsv", show_col_types = FALSE)
 ```
 ### **3. Convert ABUND to long format and map metadata**
 ```{r}
@@ -36,11 +33,11 @@ ABUND_long <- ABUND %>%
               mutate(Date = as.Date(Date)) %>%
               pivot_longer(-Date, names_to = "asv_id", values_to = "abund") %>%
               left_join(x = ., 
-                        y  = METADATA %>% dplyr::select(Date, sample_name, Temperature_C), 
+                        y  = METADATA %>% dplyr::select(Date, 
+                                                        amplicon_sample_name, 
+                                                        Community,
+                                                        Temperature_C), 
                         by = c("Date")) %>%
-              left_join(x = ., 
-                        y  = DATE2SEASON2COMMUITY , 
-                        by = "Date") %>%
               filter(abund > 0) # it is critical to remove zeros, other wise asv ranges in S1 and S2 are the same. 
 ```
 ### **4. Compute optimal temperature for each ASV**

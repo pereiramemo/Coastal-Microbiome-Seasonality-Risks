@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ### **Intro**
-Functional diversity loss simulated by increasing water temperature scenarios and comparing semesters to reproduce the results of Figure 6B from the original publication. [Seasonal dynamics of the coastal microbiome and its association with environmental factors](https://doi.org/10.1038/s41597-023-02266-0).
+Functional diversity loss simulated by increasing water temperature scenarios and comparing semesters to reproduce the results of Figure 6B from the original publication [Seasonal dynamics of the coastal microbiome and its association with environmental factors](https://doi.org/10.1038/s41597-023-02266-0).
 
 ### **1. Set the environment**
 ```{r, message=FALSE, warning=FALSE}
@@ -21,26 +21,23 @@ source("../scripts/resources/increasing_temp_simulation.R")
 ```
 
 ### **2. Load data**
-`opuss_workable.tsv` contains the rarefied OPU abundance profiles, with samples as rows and OPUs as columns.  
-`samo_metadata_workable.tsv` contains the metadata for the samples.  
-`date2season2community.tsv` is a table mapping the date, season, and community columns.
+`opuss_workable.tsv`: rarefied OPUs abundance table (wide format).  
+`samo_metadata_workable.tsv`: metadata for SAMO samples.  
 
 ```{r}
-ABUND <- read_tsv("../data/opus_workable.tsv.gz", show_col_types = FALSE)
-METADATA <- read_tsv("../data/samo_metadata_workable.tsv", show_col_types = FALSE)
-DATE2SEASON2COMMUITY <- read_tsv("../data/date2season2community.tsv", show_col_types = FALSE)
+ABUND <- read_tsv("../data/opus/opus_workable.tsv.gz", show_col_types = FALSE)
+METADATA <- read_tsv("../data/metadata/samo_metadata_workable.tsv", show_col_types = FALSE)
 ```
 
 ### **3. Convert ABUND to long format and map metadata**
 ```{r}
 ABUND_long <- ABUND %>%
               left_join(x = ., 
-                        y = METADATA %>% dplyr::select(Date, Temperature_C), 
+                        y = METADATA %>% dplyr::select(Date, Community, 
+                                                       metagenome_sample_name, 
+                                                       Temperature_C), 
                         by = c("Date")) %>%
-              filter(abundance > 0) %>%
-              left_join(x = ., 
-                        y  = DATE2SEASON2COMMUITY, 
-                        by = "Date")
+              filter(abundance > 0) 
 ```
 ### **4. Compute temperature range for each semester**
 
@@ -73,7 +70,7 @@ ABUND_wide <- ABUND %>%
                           values_fill = 0) %>%
               column_to_rownames(var = "Date")
 
-s1_i <- DATE2SEASON2COMMUITY %>% 
+s1_i <- METADATA %>% 
         filter(as.character(Date) %in% rownames(ABUND_wide)) %>%
         filter(Community == "S1") %>% 
         pull(Date) %>%
@@ -81,11 +78,11 @@ s1_i <- DATE2SEASON2COMMUITY %>%
 
 ABUND_s1 <- ABUND_wide[s1_i,] %>% as.matrix()
 
-s2_i <- DATE2SEASON2COMMUITY %>% 
-  filter(as.character(Date) %in% rownames(ABUND_wide)) %>%
-  filter(Community == "S2") %>% 
-  pull(Date) %>%
-  as.character()
+s2_i <- METADATA %>% 
+        filter(as.character(Date) %in% rownames(ABUND_wide)) %>%
+        filter(Community == "S2") %>% 
+        pull(Date) %>%
+        as.character()
 
 ABUND_s2 <- ABUND_wide[s2_i,] %>% as.matrix()
 ```

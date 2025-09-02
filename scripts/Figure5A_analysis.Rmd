@@ -20,22 +20,20 @@ library(vegan)
 ```
 
 ### **2. Load data**
-`NTI_weighted_26_1000_asvs.csv` weighted Nearest Taxin Index (NTI) values for the 1000 most abundant ASVs in the dataset. `samo_metadata_workable.tsv` contains the metadata for the samples.
-`date2season2community.tsv` is a table mapping the date, season, and community columns.
+`NTI_weighted_26_1000_asvs.csv`: NTI values.  
+`samo_metadata_workable.tsv`: metadata for SAMO samples.  
 
 ```{r}
 NTI <- read_csv("../data/tree_analysis/NTI_weighted_26_1000_asvs.csv", show_col_types = FALSE)
 colnames(NTI)[1] <- "sample_name"
-METADATA <- read_tsv("../data/samo_metadata_workable.tsv", show_col_types = FALSE)
-DATE2SEASON2COMMUITY <- read_tsv("../data/date2season2community.tsv", show_col_types = FALSE)
+METADATA <- read_tsv("../data/metadata/samo_metadata_workable.tsv", show_col_types = FALSE)
 ```
 
 ## **3. Format and add metadata info to the NTI table**
 ```{r}
 NTI_ext <- NTI %>%
-           filter(sample_name %in% METADATA$sample_name) %>%
-           left_join(x = ., y = METADATA, by = "sample_name") %>%
-           left_join(x = ., y = DATE2SEASON2COMMUITY, by = "Date")  %>%
+           filter(sample_name %in% METADATA$amplicon_sample_name) %>%
+           left_join(x = ., y = METADATA, by = c("sample_name" = "amplicon_sample_name")) %>%
            mutate(mntd.obs.z = -mntd.obs.z) %>%
            mutate(bnti_signif = if_else(mntd.obs.z > 2, "gt", 
                         if_else(mntd.obs.z < -2, "lt", "not_signif")))

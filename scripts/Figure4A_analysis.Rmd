@@ -23,10 +23,10 @@ source("../scripts/resources/rare_indval.R")
 ```
 
 ### **2. Load data**
-`asvs_non_rare_long.tsv`: non-rarefied ASV abundance table (long format). 
+`asvs_non_rare_long.tsv`: non-rarefied ASV abundance table (long format).  
 `asvs_workable.tsv.gz`: rarefied ASV abundance table (wide format).  
 `asv_table_nbcandem_annot_clean_long.tsv`: ASV abundance with taxonomic annotation (long format).  
-`samo_metadata_workable.tsv`: metadata for SAMO samples.    
+`samo_metadata_workable.tsv`: metadata for SAMO samples.  
 
 ```{r}
 ABUND <- read_tsv("../data/asvs/asvs_workable.tsv.gz", show_col_types = FALSE) %>%
