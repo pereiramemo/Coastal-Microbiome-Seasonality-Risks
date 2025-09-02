@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ### **Intro**
-Non-Metric Multidimensional Scaling (NMDS) performed on the Bray-Curtis compositional dissimilarity matrices of Operational Protein Units (OPUs), to reproduce the analyses and the Figure 1A from the original publication [Seasonal dynamics of the coastal microbiome and its association with environmental factors](https://doi.org/10.1038/s41597-023-02266-0).
+Non-metric Multidimensional Scaling (NMDS) performed on the Bray-Curtis compositional dissimilarity matrices of Operational Protein Units (OPUs) to reproduce the analyses and the Figure 1B from the original publication [Seasonal dynamics of the coastal microbiome and its association with environmental factors](https://doi.org/10.1038/s41597-023-02266-0).
 
 ### **1. Set the environment**
 
@@ -19,16 +19,15 @@ Non-Metric Multidimensional Scaling (NMDS) performed on the Bray-Curtis composit
 library(tidyverse)
 library(vegan)
 library(ggpubr)
-library(corrgram)
-library(lubridate)  
-library(grid)       
 ```
 
 ### **2. Load data**
+`opus_workable.tsv`: rarefied OPU abundance table (long format).    
+`samo_metadata_workable.tsv`: metadata for SAMO samples.
 
 ```{r load}
-ABUND <- read_tsv("../data/opus_workable.tsv.gz", show_col_types = FALSE)
-METADATA <- read_tsv("../data/samo_metadata_workable.tsv", show_col_types = FALSE)
+ABUND <- read_tsv("../data/opus/opus_workable.tsv.gz", show_col_types = FALSE)
+METADATA <- read_tsv("../data/metadata/samo_metadata_workable.tsv", show_col_types = FALSE)
 ```
 
 ### 3. Format abundance table
