@@ -29,12 +29,8 @@ Contains the input data used for the analyses:
   - `asv_table_nbcandem_annot_clean_long.tsv.gz` – ASV abundance with taxonomic annotation (long format)
 - **`kofam/`** 
   - `ko2desc.tsv` – KO description
-  - `KO_classification.csv` – custom KO classification into functional categories
-  - `pathway2desc.tsv` – KO pathway description
-  - `pathway2ko.tsv` – mapping pathway to KOs
+  - `KO_class.csv` – custom KO classification into functional categories
 - **`metadata/`**   
-  - `metagenomic_sample_name2date.tsv` – mapping from sample names to collection dates
-  - `date2season2community.tsv` – mapping of sampling dates to seasons and communities
   - `samo_metadata_workable.tsv` – metadata for SAMO samples
   - `samo_vs_tara_workable.tsv.gz` – rarefied abundance table for SAMO + TARA samples (wide format)
   - `tara_metadata_workable.tsv` – metadata for TARA samples
