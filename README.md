@@ -40,7 +40,7 @@ Contains the input data used for the analyses:
   - `tara_metadata_workable.tsv` – metadata for TARA samples
 - **`opus/`** 
   - `opus2ko_non_rare_long.tsv.gz` – non-rarefied OPUs abundance table with KO annotations (long format)
-  - `opus_workable.tsv.gz` – rarefied OPUs abundance table (wide format)
+  - `opus_workable.tsv.gz` – rarefied OPUs abundance table (long format)
   - `ABUND_dist22_shared_list.rds`
 - **`tree_analysis/`** 
   - `bNTI_weighted_26_1000_asvs.csv` – bNTI values
