@@ -23,19 +23,16 @@ source("../scripts/resources/rare_indval.R")
 ```
 
 ### **2. Load data**
-`opus2ko_non_rare_long.tsv.gz` contains the non-rarefied OPU abundance profiles, in a long format, having each OPU annotated against the KOfam database.   
-`metagenomic_sample_name2date.tsv` is table mapping the sample name of the metagenomic samples and the date. 
-`date2season2community.tsv` is a table mapping the date, season, and community columns.
-`KO_class.csv` contains a custom coarse grained functional classification of KOs.
-`ko2desc.tsv` tables describing the functions of each KO, as provided by the KOfam database.
+`opus2ko_non_rare_long.tsv.gz`: non-rarefied OPUs abundance table with KO annotations (long format).  
+`METADATA`:  metadata for SAMO samples.  
+`KO_class.csv` custom KO classification into functional categories.  
+`KO_desc.csv`  KO pathway description.  
 
 ```{r}
-KO_TBL <- read_tsv("../data/opus2ko_non_rare_long.tsv.gz", show_col_types = FALSE)
-SAMPLENAME2DATE <- read_tsv("../data/metagenomic_sample_name2date.tsv", show_col_types = FALSE)
-DATE2SEASON2COMMUITY <- read_tsv("../data/date2season2community.tsv", show_col_types = FALSE)
-KO_CLASS <- read_tsv("../data/KO_class.csv", show_col_types = FALSE)
-KO2DESC <- read_tsv("../data/kofam/ko2desc.tsv", col_names = F, show_col_types = FALSE)
-colnames(KO2DESC) <- c("KO_ID", "Code", "desc_ko")
+KO_TBL <- read_tsv("../data/opus/opus2ko_non_rare_long.tsv.gz", show_col_types = FALSE)
+METADATA <- read_tsv("../data/metadata/samo_metadata_workable.tsv", show_col_types = FALSE)
+KO_CLASS <- read_tsv("../data/kofam/KO_class.csv", show_col_types = FALSE)
+KO2DESC <- read_tsv("../data/kofam/KO_desc.csv", show_col_types = FALSE)
 ```
 
 ### **3. Collapse keeping only necessary columns**
@@ -49,11 +46,8 @@ KO_TBL_collapsed <- KO_TBL %>%
 ### **4. Map dates and semester**
 ```{r}
 KO_TBL_collapsed_ext <- left_join(x = KO_TBL_collapsed, 
-                                  y = SAMPLENAME2DATE, 
-                                  by = "sample_name") %>%
-                        left_join(x = .,
-                                  y = DATE2SEASON2COMMUITY,
-                                  by = "Date") 
+                                  y = METADATA, 
+                                  by = c("sample_name"="metagenome_sample_name"))
 ```
 ### **5. Convert to wide format**
 ```{r}
@@ -63,10 +57,11 @@ KO_TBL_collapsed_ext_wide <- KO_TBL_collapsed_ext %>%
                                           values_from = abund, 
                                           values_fill = 0) %>%
                               column_to_rownames("Date")
+# Check dimensions
 dim(KO_TBL_collapsed_ext_wide)
 ```
 
-### **7. Round values to integers**
+### **6. Round values to integers**
 
 ```{r}
 # Set the number of cores to use for parallel processing; 
@@ -81,7 +76,7 @@ colnames(KO_TBL_int) <- colnames(KO_TBL_collapsed_ext_wide)
 rownames(KO_TBL_int) <- rownames(KO_TBL_collapsed_ext_wide)
 ```
 
-### **8. Define variables to run IndVal over iterated rarefactions**
+### **7. Define variables to run IndVal over iterated rarefactions**
 ```{r}
 # Set the number of cores to use for parallel processing; 
 # this should be adjusted to the local computational capacitites.
@@ -90,7 +85,7 @@ doParallel::registerDoParallel(n_cores)
 
 abundance_table <- KO_TBL_int
 sample_size <- rowSums(abundance_table) %>% min()
-semester <- DATE2SEASON2COMMUITY %>%
+semester <- METADATA %>%
             dplyr::select(Date, Community) %>%
             column_to_rownames("Date")
 
@@ -100,7 +95,7 @@ all(rownames(semester_ord) == rownames(abundance_table))
 vector_group <- semester_ord$Community
 ```
 
-### **9. Run IndVal over iterated rarefactions**
+### **8. Run IndVal over iterated rarefactions**
 To accelerate the execution of the following function, we will use the paramters 
 nperm = 99. However, to reproduce the results from the original publication, 
 this parameter should be set to 9999. 
@@ -114,7 +109,7 @@ rare_indval_output <- rare_indval(iterations = 100,
                                   p_value = 1e-2)
 ```
 
-### **10. Select KOs with a 80% consistency or greater**
+### **9. Select KOs with a 80% consistency or greater**
 ```{r}
 rare_indval_output_s1_80 <- rare_indval_output %>%
                             filter(consistency > 80 & semester == "S1")
@@ -126,7 +121,7 @@ rare_indval_output_s2_80 <- rare_indval_output %>%
 dim(rare_indval_output_s1_80)
 dim(rare_indval_output_s2_80)
 ```
-### **11. KO classification**
+### **10. KO classification**
 ```{r}
 indval_output_df_sig_s1_80_wdesc <- rare_indval_output_s1_80 %>%
                                  rename(KO_ID = asv_id) %>%
@@ -150,7 +145,7 @@ indval_output_df_sig_s2_80_wdesc <- rare_indval_output_s2_80 %>%
 
 ```
 
-### **12. Map abundance**
+### **11. Map abundance**
 ```{r}
 
 sample_min <- rowSums(KO_TBL_int) %>% min()
@@ -178,7 +173,7 @@ indval_output_df_sig_s2_80_wdesc_wabund <- left_join(x = indval_output_df_sig_s2
                                                   by = "KO_ID")
 ```
 
-### **14. Define KO Class colors**
+### **12. Define KO Class colors**
 ```{r}
 ko_class <- c(indval_output_df_sig_s1_80_wdesc$KO_class, indval_output_df_sig_s2_80_wdesc$KO_class) %>% unique()
   
@@ -200,7 +195,7 @@ indval_output_df_sig_s1_80_wdesc_wabund$color <- ko_class_palette[indval_output_
 indval_output_df_sig_s2_80_wdesc_wabund$color <- ko_class_palette[indval_output_df_sig_s2_80_wdesc_wabund$KO_class]
 ```
 
-### **15. Create barplots: S1**
+### **13. Create barplots: S1**
 ```{r}
 
 scaling_factor_s1 <- 1.2e-3
@@ -250,7 +245,7 @@ barplot_kos_indval_s1
 
 ```
 
-### **16. Create barplots: S2**
+### **14. Create barplots: S2**
 
 ```{r}
 scaling_factor_s2 <- 9.5e-4
@@ -300,4 +295,11 @@ barplot_kos_indval_s2 <- indval_output_df_sig_s2_80_wdesc_wabund %>%
 
 
 barplot_kos_indval_s2
+```
+
+### **15. Print session info**
 ```{r}
+sessionInfo()
+```
+
+
