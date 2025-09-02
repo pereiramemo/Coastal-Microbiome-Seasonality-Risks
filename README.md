@@ -51,7 +51,7 @@ Contains R Markdown scripts and R functions for generating figures and performin
 
 - `Figure*_analysis.Rmd` – code to reproduce the analysis and figures
 - **`resources/`** 
-  - `custom_bray_curtis.R` – function to decompose the Bray–Curtis dissimilarity
+  - `custom_bray_curtis.R` – function to decompose the Bray–Curtis dissimilarity as shown in (Legendre 2019)[https://onlinelibrary.wiley.com/doi/full/10.1002/ece3.4984]
   - `increasing_temp_simulation.R` – function to perform the increased-temperature simulation
   - `rare_indval.R` – function to run the IndVal analysis integrating the consistency score
 
