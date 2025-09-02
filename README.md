@@ -68,7 +68,7 @@ cd Coastal-Microbiome-Seasonality-Risks
 ```
 3. Execute the script `render_commands.R` from the command line.    
 ```
-Rscript script/render_commands.R
+Rscript scripts/render_commands.R
 ```
 This will render all R Markdown files in the `./scripts` directory and generate the corresponding PDF files in the `./results` directory.
 
