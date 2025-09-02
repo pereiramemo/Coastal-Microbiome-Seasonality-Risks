@@ -73,7 +73,7 @@ cd Coastal-Microbiome-Seasonality-Risks
 ```
 conda create -y -n samo-r-env -c conda-forge --file requirements.txt && conda activate samo-r-env
 ```
-3. Execute the script `render_commands.R` from the command line.    
+4. Execute the script `render_commands.R` from the command line.    
 ```
 Rscript scripts/render_commands.R
 ```
