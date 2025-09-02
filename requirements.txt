@@ -6,3 +6,8 @@ r-maps
 r-tidyverse
 r-vegan
 r-rmarkdown
+r-knitr 
+r-rlang 
+r-xfun 
+r-evaluate 
+r-yaml
