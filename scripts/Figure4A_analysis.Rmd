@@ -23,20 +23,21 @@ source("../scripts/resources/rare_indval.R")
 ```
 
 ### **2. Load data**
-`asvs_non_rare_long.tsv` contains the non-rarefied ASV abundance profiles, in a long format.   
-`date2season2community.tsv` is table mapping the date, season, and community columns.
-`asv_table_nbcandem_annot_clean_long.tsv` contains taxonomic annotation for each ASV as obtained by NBC.
+`asvs_non_rare_long.tsv`: non-rarefied ASV abundance table (long format). 
+`asvs_workable.tsv.gz`: rarefied ASV abundance table (wide format).  
+`asv_table_nbcandem_annot_clean_long.tsv`: ASV abundance with taxonomic annotation (long format).  
+`samo_metadata_workable.tsv`: metadata for SAMO samples.    
 
 ```{r}
-ABUND <- read_tsv("../data/asvs_workable.tsv.gz", show_col_types = FALSE) %>%
+ABUND <- read_tsv("../data/asvs/asvs_workable.tsv.gz", show_col_types = FALSE) %>%
          column_to_rownames("Date") 
-ASV_ABUND_TBL <- read_tsv("../data/asvs_non_rare_long.tsv", show_col_types = FALSE) 
-DATE2SEASON2COMMUITY <- read_tsv("../data/date2season2community.tsv", show_col_types = FALSE)
-ASV_TAXA_TBL <- read_tsv("../data/asv_table_nbcandem_annot_clean_long.tsv.gz", col_names = T, show_col_types = FALSE)
+ASV_ABUND_TBL <- read_tsv("../data/asvs/asvs_non_rare_long.tsv.gz", show_col_types = FALSE) 
+ASV_TAXA_TBL <- read_tsv("../data/asvs/asv_table_nbcandem_annot_clean_long.tsv.gz", col_names = T, show_col_types = FALSE)
 colnames(ASV_TAXA_TBL)[1] <- "asv_id"
+METADATA <- read_tsv("../data/metadata/samo_metadata_workable.tsv", show_col_types = FALSE)
 ```
 
-## **3. Format abundance table ASV_ABUND_TBL**
+### **3. Format abundance table ASV_ABUND_TBL**
 Remove all singletons and samples with less than 2500 reads.
 ```{r}
 ASV_ABUND_TBL_filt <- ASV_ABUND_TBL %>%
@@ -46,7 +47,7 @@ ASV_ABUND_TBL_filt <- ASV_ABUND_TBL %>%
                       
 ```
 
-### 4. Convert table to wide
+### **4. Convert table to wide**
 ```{r}
 ASV_ABUND_TBL_filt_wide <- ASV_ABUND_TBL_filt %>%
                            dplyr::select(Date, asv_id, abund) %>%
@@ -57,7 +58,7 @@ ASV_ABUND_TBL_filt_wide <- ASV_ABUND_TBL_filt %>%
                            column_to_rownames(var = "Date")
 ```
 
-###  **5. Define variables to run IndVal over iterated rarefactions
+### **5. Define variables to run IndVal over iterated rarefactions**
 ```{r}
 # Set the number of cores to use for parallel processing; 
 # this should be adjusted to the local computational capacitites.
@@ -66,7 +67,7 @@ doParallel::registerDoParallel(n_cores)
 
 sample_size <- rowSums(ASV_ABUND_TBL_filt_wide) %>% min()
 
-semester <- DATE2SEASON2COMMUITY %>%
+semester <- METADATA %>%
   dplyr::select(Date, Community) %>%
   column_to_rownames("Date")
 
@@ -265,7 +266,7 @@ barplot_asv_indval_s1 <- indval_s1_counts2abund %>%
 
 barplot_asv_indval_s1
 ```
-### **`14. Create barplots: S2**
+### **14. Create barplots: S2**
 ```{r}
 scaling_factor_s2 <- 6.5e-2
 text_size <- 14

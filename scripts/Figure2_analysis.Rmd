@@ -22,17 +22,20 @@ library(fANCOVA)
 ```
 
 ### **2. Load data**
+`samo_vs_tara_workable.tsv.gz`: rarefied abundance table for SAMO + TARA samples (wide format)  
+`samo_metadata_workable.tsv`: metadata for SAMO samples  
+`tara_metadata_workable.tsv`: metadata for TARA samples  
 ```{r}
-ABUND_workable_long <- read_tsv("../data/samo_vs_tara_workable.tsv")
-SAMO_METADATA <- read_tsv("../data/samo_metadata_workable.tsv")
-TARA_METADATA <- read_tsv("../data/tara_metadata_workable.tsv")
+ABUND_workable_long <- read_tsv("../data/asvs/samo_vs_tara_workable.tsv.gz", show_col_types = FALSE)
+SAMO_METADATA <- read_tsv("../data/metadata/samo_metadata_workable.tsv", show_col_types = FALSE)
+TARA_METADATA <- read_tsv("../data/metadata/tara_metadata_workable.tsv", show_col_types = FALSE)
 ```
 
 ### **3. Split datasets and convert to wide format**
 This section selects SAMO and TARA sample IDs of interest and converts the long-format abundance table into a wide matrix (samples × taxa). It then subsets the matrix into SAMO and TARA blocks and reports their dimensions.
 ```{r}
 
-samo_samples <- SAMO_METADATA$sample_name 
+samo_samples <- SAMO_METADATA$amplicon_sample_name 
 
 tara_samples <- TARA_METADATA %>%
   filter(region == "(SAO) South Atlantic Ocean [MRGID:1914]" | region == "(SO) Southern Ocean [MRGID:1907]") %>%
@@ -86,8 +89,8 @@ Simply add the metadata to the dissimilarity table `samo_vs_tara_diss_df`.
 ```{r}
 samo_vs_tara_diss_df_ext <- samo_vs_tara_diss_df %>%
   left_join(SAMO_METADATA %>% 
-  select(Date, sample_name, Season, Temperature_C),
-         by = c("samo_sample" = "sample_name")) %>%
+  select(Date, amplicon_sample_name, Season, Temperature_C),
+         by = c("samo_sample" = "amplicon_sample_name")) %>%
   left_join(TARA_METADATA %>% select(sample, lat, lon, region),
          by = c("tara_sample" = "sample"))
 ```

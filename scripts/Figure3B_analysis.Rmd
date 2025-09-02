@@ -22,12 +22,12 @@ library(vegan)
 ```
 
 ### **2. Load data**
-`opus_workable.tsv` contains the rarefied OPUs abundance profiles, with samples as rows and OPUs as columns.  
-`date2season2community.tsv` is table mapping the date, season, and community columns.
+`opus_workable.tsv`: rarefied OPUs abundance table (wide format).  
+`samo_metadata_workable.tsv` metadata for SAMO samples.  
 
 ```{r}
-ABUND <- read_tsv("../data/opus_workable.tsv.gz", show_col_types = FALSE)
-DATE2SEASON2COMMUITY <- read_tsv("../data/date2season2community.tsv", show_col_types = FALSE)
+ABUND <- read_tsv("../data/opus/opus_workable.tsv.gz", show_col_types = FALSE)
+METADATA <- read_tsv("../data/metadata/samo_metadata_workable.tsv", show_col_types = FALSE)
 ```
 
 ### **3. Format ABUND as wide**
@@ -52,7 +52,7 @@ output_long_df <- data.frame(Shannon = div,
                    rownames_to_column(var = "Date") %>%
                    pivot_longer(names_to = "Index", values_to = "value", 
                                 cols = -Date) %>%
-                   left_join(DATE2SEASON2COMMUITY %>% 
+                   left_join(METADATA %>% 
                                select(Date, Community) %>%
                                mutate(Date= as.character(Date)), 
                              by = "Date") 
