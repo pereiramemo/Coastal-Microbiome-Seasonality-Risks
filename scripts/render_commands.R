@@ -1,4 +1,4 @@
-setwd("/home/epereira/workspace/repositories/studies/Coastal-Microbiome-Seasonality-Risks/")
+if (!exists("%||%")) `%||%` <- function(x, y) if (is.null(x)) y else x
 
 ###############################################################################
 # Render Figure 1 
@@ -14,7 +14,7 @@ rmarkdown::render("scripts/Figure1B_analysis.Rmd", output_file = "../results/Fig
 rmarkdown::render("scripts/Figure2_analysis.Rmd", output_file = "../results/Figure2_analysis.pdf")
 
 ###############################################################################
-# Render Figure 3 
+# Render Figure 3
 ###############################################################################
 
 rmarkdown::render("scripts/Figure3A_analysis.Rmd", output_file = "../results/Figure3A_analysis.pdf")
@@ -44,5 +44,3 @@ rmarkdown::render("scripts/Figure6A_analysis.Rmd", output_file = "../results/Fig
 rmarkdown::render("scripts/Figure6B_analysis.Rmd", output_file = "../results/Figure6B_analysis.pdf")
 rmarkdown::render("scripts/Figure6C_analysis.Rmd", output_file = "../results/Figure6C_analysis.pdf")
 rmarkdown::render("scripts/Figure6D_analysis.Rmd", output_file = "../results/Figure6D_analysis.pdf")
-
-
