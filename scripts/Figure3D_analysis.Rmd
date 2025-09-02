@@ -21,13 +21,12 @@ source("../scripts/resources/custom_bray_curtis.R")
 ```
 
 ### **2. Load data**
-`opus_workable.tsv` contains the rarefied OPU abundance profiles, with samples as rows and OPUs as columns.  
-`date2season2community.tsv` is table mapping the date, season, and community columns.
+`opus_workable.tsv`: rarefied OPUs abundance table (wide format).   
+`samo_metadata_workable.tsv` metadata for SAMO samples.  
 
 ```{r}
-ABUND <- read_tsv("../data/opus_workable.tsv.gz", show_col_types = FALSE) 
-                    
-DATE2SEASON2COMMUITY <- read_tsv("../data/date2season2community.tsv", show_col_types = FALSE)
+ABUND <- read_tsv("../data/opus/opus_workable.tsv.gz", show_col_types = FALSE) 
+METADATA <- read_tsv("../data/metadata/samo_metadata_workable.tsv", show_col_types = FALSE)
 ```
 ### **3. Format ABUND as wide**
 ```{r}
@@ -41,7 +40,7 @@ ABUND <- ABUND %>%
 
 
 ### **4. Compute D diff, B and C components**
-Computes the D, B, and C components as defined in (Legendre et al. 2018)[https://onlinelibrary.wiley.com/doi/full/10.1002/ece3.4984]
+Computes the D, B, and C components as defined in [Legendre 2019](https://onlinelibrary.wiley.com/doi/full/10.1002/ece3.4984)
 
 ```{r}
 # ABUND <- (ABUND > 0) + 0
@@ -51,7 +50,7 @@ Computes the D, B, and C components as defined in (Legendre et al. 2018)[https:/
 #                                       ncores = 40)
 
 # We are going to load a precomputed dissimilarities, becaouse this takes too long.
-ABUND_dist_list <- readRDS(file = "../data/ABUND_dist22_shared_list.rds")
+ABUND_dist_list <- readRDS(file = "../data/opus/opus_bc_desc_22_shared_list.rds")
 
 ABUND_D_diff_mtx <- ABUND_dist_list[["mtx"]][["D_diff"]]
 ABUND_B_loss_mtx <- ABUND_dist_list[["mtx"]][["B_loss"]]
@@ -80,8 +79,8 @@ ABUND_D_diff_long <- ABUND_D_diff_mtx %>%
                                   values_to = "D_diff", 
                                   cols = 2:(dim(ABUND_D_diff_mtx)[2] +1)) %>%
                      filter(is.na(D_diff) != T) %>%
-                     mutate(Date_formatted = as.Date(Date),
-                            Date_formatted_vs = as.Date(Date_vs))
+                     mutate(Date = as.Date(Date),
+                            Date_vs = as.Date(Date_vs))
 
 ABUND_B_loss_long <- ABUND_B_loss_mtx %>%
                      as.data.frame() %>%
@@ -90,8 +89,8 @@ ABUND_B_loss_long <- ABUND_B_loss_mtx %>%
                                   values_to = "B_loss", 
                                   cols = 2:(dim(ABUND_B_loss_mtx)[2] +1)) %>%
                      filter(is.na(B_loss) != T) %>%
-                     mutate(Date_formatted = as.Date(Date),
-                            Date_formatted_vs = as.Date(Date_vs))
+                     mutate(Date = as.Date(Date),
+                            Date_vs = as.Date(Date_vs))
 
 ABUND_C_gain_long <- ABUND_C_gain_mtx %>%
                      as.data.frame() %>%
@@ -100,8 +99,8 @@ ABUND_C_gain_long <- ABUND_C_gain_mtx %>%
                                   values_to = "C_gain", 
                                   cols = 2:(dim(ABUND_C_gain_mtx)[2] +1)) %>%
                      filter(is.na(C_gain) != T) %>%
-                     mutate(Date_formatted = as.Date(Date),
-                            Date_formatted_vs = as.Date(Date_vs))
+                     mutate(Date = as.Date(Date),
+                            Date_vs = as.Date(Date_vs))
 
 ```
 
@@ -118,12 +117,10 @@ ABUND_dist_long_ext <- left_join(x = ABUND_D_diff_long,
                               gains = if_else(Date < Date_vs & C_gain > B_loss, 1, 0),
                               gains = if_else(Date > Date_vs & C_gain < B_loss, 1, gains),
                               losses = if_else(gains == 1, 0, 1)) %>% 
-                      left_join(x = ., y = DATE2SEASON2COMMUITY %>% 
-                                             mutate(Date = as.character(Date)) %>%
+                      left_join(x = ., y = METADATA %>% 
                                              select(Date, Community), 
                                 by = "Date") %>%
-                      left_join(x = ., y = DATE2SEASON2COMMUITY %>% 
-                                           mutate(Date = as.character(Date)) %>%
+                      left_join(x = ., y = METADATA %>% 
                                            select(Date, Community), 
                                 by = c("Date_vs" = "Date"), suffix = c("", "_vs")) %>%
                       mutate(s_comparison = paste(Community, 
@@ -150,7 +147,7 @@ ABUND_dist_long_ext$s_comparison %>% table()
 #   summarise(gains = sum(gains))
 
 losses_counts <- ABUND_dist_long_ext %>%
-#   filter(Date_formatted < Date_formatted_vs) %>%
+#   filter(Date < Date_vs) %>%
   filter(s_comparison == "S1 vs S2" | s_comparison == "S2 vs S1") %>%
   group_by(s_comparison) %>%
   summarise(losses = sum(losses))

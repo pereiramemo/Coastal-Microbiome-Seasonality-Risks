@@ -32,7 +32,7 @@ METADATA <- read_tsv("../data/metadata/samo_metadata_workable.tsv", show_col_typ
 ```
 
 ### **3. Compute D diff, B and C components**
-Computes the D, B, and C components as defined in (Legendre et al. 2018)[https://onlinelibrary.wiley.com/doi/full/10.1002/ece3.4984]
+Computes the D, B, and C components as defined in [Legendre 2019](https://onlinelibrary.wiley.com/doi/full/10.1002/ece3.4984)
 
 ```{r}
 ABUND <- (ABUND > 0) + 0
