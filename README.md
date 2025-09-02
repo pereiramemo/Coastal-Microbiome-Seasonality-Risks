@@ -23,22 +23,25 @@ by E. Pereira, Zanetti J, Griffero L, Martínez A, Amann R, Alonso C.
 ### `./data`
 Contains the input data used for the analyses:
 
-- `ABUND_dist22_shared_list.rds`
-- `asvs_non_rare_long.tsv.gz` – non-rarefied ASV abundance table (long format)
-- `asvs_workable.tsv.gz` – rarefied ASV abundance table (wide format)
-- `asv_table_nbcandem_annot_clean_long.tsv.gz` – ASV abundance with taxonomic annotation (long format)
-- `date2season2community.tsv` – mapping of sampling dates to seasons and communities
+- **`asvs/`** 
+  - `asvs_non_rare_long.tsv.gz` – non-rarefied ASV abundance table (long format)
+  - `asvs_workable.tsv.gz` – rarefied ASV abundance table (wide format)
+  - `asv_table_nbcandem_annot_clean_long.tsv.gz` – ASV abundance with taxonomic annotation (long format)
 - **`kofam/`** 
   - `ko2desc.tsv` – KO description
   - `KO_classification.csv` – custom KO classification into functional categories
   - `pathway2desc.tsv` – KO pathway description
   - `pathway2ko.tsv` – mapping pathway to KOs
-- `metagenomic_sample_name2date.tsv` – mapping from sample names to collection dates
-- `opus2ko_non_rare_long.tsv.gz` – non-rarefied OPUs abundance table with KO annotations (long format)
-- `opus_workable.tsv.gz` – rarefied OPUs abundance table (wide format)
-- `samo_metadata_workable.tsv` – metadata for SAMO samples
-- `samo_vs_tara_workable.tsv.gz` – rarefied abundance table for SAMO + TARA samples (wide format)
-- `tara_metadata_workable.tsv` – metadata for TARA samples
+- **`metadata/`**   
+  - `metagenomic_sample_name2date.tsv` – mapping from sample names to collection dates
+  - `date2season2community.tsv` – mapping of sampling dates to seasons and communities
+  - `samo_metadata_workable.tsv` – metadata for SAMO samples
+  - `samo_vs_tara_workable.tsv.gz` – rarefied abundance table for SAMO + TARA samples (wide format)
+  - `tara_metadata_workable.tsv` – metadata for TARA samples
+- **`opus/`** 
+  - `opus2ko_non_rare_long.tsv.gz` – non-rarefied OPUs abundance table with KO annotations (long format)
+  - `opus_workable.tsv.gz` – rarefied OPUs abundance table (wide format)
+  - `ABUND_dist22_shared_list.rds`
 - **`tree_analysis/`** 
   - `bNTI_weighted_26_1000_asvs.csv` – bNTI values
   - `NTI_weighted_26_1000_asvs.csv` – NTI values
