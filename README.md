@@ -41,7 +41,7 @@ Contains the input data used for the analyses:
 - **`opus/`** 
   - `opus2ko_non_rare_long.tsv.gz` – non-rarefied OPUs abundance table with KO annotations (long format)
   - `opus_workable.tsv.gz` – rarefied OPUs abundance table (long format)
-  - `ABUND_dist22_shared_list.rds`
+  - `opus_bc_desc_22_shared_list.rds` – precomputed Bray-Curtis dissimilarity decompositions 
 - **`tree_analysis/`** 
   - `bNTI_weighted_26_1000_asvs.csv` – bNTI values
   - `NTI_weighted_26_1000_asvs.csv` – NTI values
