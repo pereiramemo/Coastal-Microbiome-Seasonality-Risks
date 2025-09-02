@@ -27,12 +27,12 @@ Contains the input data used for the analyses:
   - `asvs_non_rare_long.tsv.gz` – non-rarefied ASV abundance table (long format)
   - `asvs_workable.tsv.gz` – rarefied ASV abundance table (wide format)
   - `asv_table_nbcandem_annot_clean_long.tsv.gz` – ASV abundance with taxonomic annotation (long format)
+  - `samo_vs_tara_workable.tsv.gz` – rarefied abundance table for SAMO + TARA samples (wide format)
 - **`kofam/`** 
   - `ko2desc.tsv` – KO description
   - `KO_class.csv` – custom KO classification into functional categories
 - **`metadata/`**   
   - `samo_metadata_workable.tsv` – metadata for SAMO samples
-  - `samo_vs_tara_workable.tsv.gz` – rarefied abundance table for SAMO + TARA samples (wide format)
   - `tara_metadata_workable.tsv` – metadata for TARA samples
 - **`opus/`** 
   - `opus2ko_non_rare_long.tsv.gz` – non-rarefied OPUs abundance table with KO annotations (long format)
